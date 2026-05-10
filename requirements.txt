@@ -1,0 +1,5 @@
+pyTelegramBotAPI==4.15.4
+python-dotenv==1.0.1
+mercadopago==2.2.0
+requests
+flask
