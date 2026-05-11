@@ -95,6 +95,12 @@ def back_to_main_keyboard():
     markup.add(InlineKeyboardButton("🔙 Voltar ao Menu", callback_data="main_menu"))
     return markup
 
+def support_keyboard():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("💬 Chamar no Suporte", url="https://t.me/Guiadopelo171c2b"))
+    markup.add(InlineKeyboardButton("🔙 Voltar ao Menu", callback_data="main_menu"))
+    return markup
+
 def admin_manage_categories_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
     categories = db.get_categories()

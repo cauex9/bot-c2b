@@ -71,6 +71,15 @@ def poseidon_webhook():
                     user_id = int(parts[1])
                     product_id = int(parts[2])
                     
+                    # Mensagens de carregamento solicitadas pelo usuário
+                    # Nota: No webhook não usamos edit_message pois é uma mensagem nova ou disparada por evento externo
+                    # Mas para manter a experiência, podemos enviar a mensagem de carregamento antes do produto
+                    load_msg = bot.send_message(user_id, "🔍 <b>Buscando cartões...</b>")
+                    time.sleep(1.5)
+                    bot.edit_message_text("🔍 <b>Buscando cartões...</b>\n\n⌛ <b>Aguarde, consultando estoque...</b>", 
+                                          chat_id=user_id, message_id=load_msg.message_id)
+                    time.sleep(1.5)
+                    
                     item = db.deliver_product(user_id, product_id)
                     if item:
                         user = db.get_user(user_id)
@@ -82,7 +91,7 @@ def poseidon_webhook():
                             f"💰 <b>Saldo Atual:</b> R$ {new_balance:.2f}\n\n"
                             "Obrigado pela compra! 💎"
                         )
-                        bot.send_message(user_id, text, reply_markup=kb.main_menu_keyboard())
+                        bot.edit_message_text(text, chat_id=user_id, message_id=load_msg.message_id, reply_markup=kb.main_menu_keyboard())
         
         return "OK", 200
     except Exception as e:
@@ -214,15 +223,24 @@ def callback_product(call):
         bot.answer_callback_query(call.id, "Produto não encontrado!", show_alert=True)
         return
         
-    # Se o produto for da categoria de CC (ID 2) e o usuário não tiver saldo
+    _, category_id, name, description, price, stock_data = product
+    
+    # Verificação de estoque vazio
+    import json
+    try:
+        stock_list = json.loads(stock_data) if stock_data else []
+        if not stock_list or len(stock_list) == 0:
+            if category_id == 2: # Categoria de CC
+                bot.answer_callback_query(call.id, "❌ Não temos cartões live neste nível de cc, aguarde o Reabastecido dessa categoria", show_alert=True)
+            else:
+                bot.answer_callback_query(call.id, "❌ Este produto está esgotado no momento.", show_alert=True)
+            return
+    except Exception as e:
+        logging.error(f"Error checking stock in callback_product: {e}")
+    
     user = db.get_user(call.from_user.id)
     balance = user[2] if user else 0.0
-    if product[1] == 2 and balance <= 0:
-        bot.answer_callback_query(call.id, "❌ Você precisa ter saldo na carteira para acessar as CCs!", show_alert=True)
-        return
         
-    _, _, name, description, price, stock = product
-    
     text = (
         f"📦 <b>Produto:</b> {name}\n\n"
         f"📝 <b>Descrição:</b>\n{description}\n\n"
@@ -262,8 +280,8 @@ def callback_cc(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "support")
 def callback_support(call):
-    text = "🆘 <b>Suporte</b>\n\nPara dúvidas ou problemas, contate o administrador: @Guiadopelo171c2b"
-    edit_message(call, text, kb.back_to_main_keyboard())
+    text = "🆘 <b>Suporte</b>\n\nPara dúvidas ou problemas, contate o administrador: <a href='https://t.me/Guiadopelo171c2b'>@Guiadopelo171c2b</a>"
+    edit_message(call, text, kb.support_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data == "add_balance")
 def callback_add_balance(call):
@@ -333,6 +351,15 @@ def callback_pay_balance(call):
     product_id = int(call.data.split("_")[1])
     bot.answer_callback_query(call.id, "Processando pagamento...")
     
+    # Mensagens de carregamento solicitadas pelo usuário
+    loading_text1 = "🔍 <b>Buscando cartões...</b>"
+    loading_text2 = "🔍 <b>Buscando cartões...</b>\n\n⌛ <b>Aguarde, consultando estoque...</b>"
+    
+    edit_message(call, loading_text1, None)
+    time.sleep(1.5)
+    edit_message(call, loading_text2, None)
+    time.sleep(1.5)
+    
     success, result = db.buy_with_balance(call.from_user.id, product_id)
     
     if success:
@@ -347,7 +374,15 @@ def callback_pay_balance(call):
         )
         edit_message(call, text, kb.main_menu_keyboard())
     else:
-        bot.answer_callback_query(call.id, f"❌ {result}", show_alert=True)
+        # Mensagem específica para CC se o erro for estoque vazio
+        error_msg = result
+        if "estoque" in result.lower() or "vazio" in result.lower():
+            product = db.get_product(product_id)
+            if product and product[1] == 2:
+                error_msg = "Não temos cartões live neste nível de cc, aguarde o Reabastecido dessa categoria"
+        
+        edit_message(call, f"❌ <b>Erro na compra:</b> {error_msg}", kb.main_menu_keyboard())
+        bot.answer_callback_query(call.id, f"❌ {error_msg}", show_alert=True)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "history")
@@ -489,6 +524,15 @@ def callback_check_payment(call):
             status = str(status).upper()
         
         if status in ['OK', 'PAID', 'SUCCESS', 'APPROVED', 'CONCLUIDO', 'FINALIZADO', 'COMPLETED']:
+            # Mensagens de carregamento solicitadas pelo usuário
+            loading_text1 = "🔍 <b>Buscando cartões...</b>"
+            loading_text2 = "🔍 <b>Buscando cartões...</b>\n\n⌛ <b>Aguarde, consultando estoque...</b>"
+            
+            edit_message(call, loading_text1, None)
+            time.sleep(1.5)
+            edit_message(call, loading_text2, None)
+            time.sleep(1.5)
+            
             item = db.deliver_product(call.from_user.id, product_id)
             if item:
                 user = db.get_user(call.from_user.id)
@@ -502,7 +546,14 @@ def callback_check_payment(call):
                 )
                 edit_message(call, text, kb.main_menu_keyboard())
             else:
-                bot.answer_callback_query(call.id, "Erro na entrega ou estoque vazio. Contate o suporte!", show_alert=True)
+                # Mensagem específica para CC se o estoque estiver vazio
+                product = db.get_product(product_id)
+                error_msg = "Estoque vazio ou falha na entrega."
+                if product and product[1] == 2:
+                    error_msg = "Não temos cartões live neste nível de cc, aguarde o Reabastecido dessa categoria"
+                
+                edit_message(call, f"❌ <b>Erro:</b> {error_msg}", kb.main_menu_keyboard())
+                bot.answer_callback_query(call.id, f"❌ {error_msg}", show_alert=True)
         else:
             bot.answer_callback_query(call.id, f"Pagamento ainda não detectado. Status: {status}", show_alert=True)
     except Exception as e:
@@ -574,12 +625,13 @@ def callback_adm_prod(call):
     if call.from_user.id not in config.ADMIN_IDS: return
     prod_id = int(call.data.split("_")[1])
     bot.answer_callback_query(call.id)
-    msg = bot.send_message(call.message.chat.id, "📝 Envie os itens para o estoque (um por linha):")
+    msg = bot.send_message(call.message.chat.id, "📝 <b>Adicionar Estoque</b>\n\nEnvie os itens abaixo. Você pode usar várias linhas para um mesmo item.\n\n⚠️ <b>IMPORTANTE:</b> Para separar um item do outro, pule uma linha (deixe uma linha em branco).")
     bot.register_next_step_handler(msg, process_add_stock, prod_id)
 
 def process_add_stock(message, prod_id):
     if message.from_user.id not in config.ADMIN_IDS: return
-    items = [line.strip() for line in message.text.split("\n") if line.strip()]
+    # Agora separa por linha em branco (\n\n) para permitir itens com múltiplas linhas
+    items = [item.strip() for item in message.text.split("\n\n") if item.strip()]
     if not items:
         bot.send_message(message.chat.id, "❌ Nenhum item enviado. Operação cancelada.")
         return
