@@ -134,15 +134,15 @@ def edit_message(call, text, reply_markup):
     try:
         if call.message.content_type == 'photo':
             bot.edit_message_caption(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                     caption=text, reply_markup=reply_markup)
+                                     caption=text, reply_markup=reply_markup, parse_mode='HTML')
         else:
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  text=text, reply_markup=reply_markup)
+                                  text=text, reply_markup=reply_markup, parse_mode='HTML')
     except Exception as e:
         logging.error(f"Error editing message: {e}")
         # Fallback: if edit fails (e.g. message not modified), send a new message
         try:
-            bot.send_message(call.message.chat.id, text, reply_markup=reply_markup)
+            bot.send_message(call.message.chat.id, text, reply_markup=reply_markup, parse_mode='HTML')
         except: pass
 
 def get_welcome_text(user_id):
