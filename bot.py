@@ -280,7 +280,7 @@ def callback_cc(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "support")
 def callback_support(call):
-    text = "🆘 <b>Suporte</b>\n\nPara dúvidas ou problemas, contate o administrador: <a href='https://t.me/Guiadopelo171c2b'>@Guiadopelo171c2b</a>"
+    text = "🆘 <b>Suporte</b>\n\nPara dúvidas ou problemas, contate o administrador: <a href='https://t.me/ceoc2b'>@ceoc2b</a>"
     edit_message(call, text, kb.support_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data == "add_balance")

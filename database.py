@@ -78,7 +78,7 @@ def init_db():
     ''')
     
     # Insert default welcome text if not exists
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_text', '💳 Bem vindo à central de vendas!\nExplore o bot pelos botões abaixo. Qualquer dúvida: @Guiadopelo171c2b.')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_text', '💳 Bem vindo à central de vendas!\nExplore o bot pelos botões abaixo. Qualquer dúvida: @ceoc2b.')")
     
     # Add missing columns to users table if they don't exist
     try:

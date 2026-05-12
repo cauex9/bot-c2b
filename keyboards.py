@@ -13,7 +13,7 @@ def main_menu_keyboard():
         InlineKeyboardButton("🎁 Resgatar Gift", callback_data="redeem_gift")
     )
     markup.add(
-        InlineKeyboardButton("🆘 Suporte", url="https://t.me/Guiadopelo171c2b")
+        InlineKeyboardButton("🆘 Suporte", url="https://t.me/ceoc2b")
     )
     return markup
 
@@ -97,7 +97,7 @@ def back_to_main_keyboard():
 
 def support_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("👑 Falar com o Dono", url="https://t.me/Guiadopelo171c2b"))
+    markup.add(InlineKeyboardButton("👑 Falar com o Dono", url="https://t.me/ceoc2b"))
     markup.add(InlineKeyboardButton("🔙 Voltar ao Menu", callback_data="main_menu"))
     return markup
 
